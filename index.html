@@ -104,6 +104,7 @@ p{line-height:1.8}
 .beatrow .b.on{border-color:var(--gold);color:var(--gold);background:rgba(232,179,60,.1)}
 .beatrow .b.hat{border-color:var(--acc);color:var(--acc);background:rgba(126,200,227,.15);box-shadow:0 0 12px rgba(126,200,227,.5)}
 .linkbtn{min-height:40px;padding:14px 20px;font-size:13px}
+.linkbtn:disabled{opacity:.35;pointer-events:none}
 /* 結果 */
 .rank-badge{
   width:150px;height:150px;border-radius:50%;margin:16px auto;
@@ -299,10 +300,10 @@ function tapFx(){
 /* ================= 画面遷移 ================= */
 function show(html){ screenEl.innerHTML = html; window.scrollTo(0,0); }
 function newSession(){ if(S) S.aborted=true; clearAll(); gen++; S={aborted:false}; return S; }
-function stageFrame(kicker,title,inner){
+function stageFrame(kicker,name,inner){
   show(`<div class="stage">
     <div class="kicker">${kicker}</div>
-    <h2 class="serif glow">${title}</h2>
+    <h2 class="serif glow">${name}</h2>
     <div id="stageBody">${inner}</div>
     <div class="center"><button class="linkbtn" id="quitBtn">試験を中断してタイトルに戻る</button></div>
   </div>`);
@@ -849,8 +850,11 @@ async function resultCard(st,res,isLast){
     <button class="btn primary" id="next" style="max-width:320px;margin:14px auto">${isLast?"段位発表へ":"次の科目へ"}</button>
     <button class="linkbtn" id="rcQuit">試験を中断してタイトルに戻る</button>
   </div>`);
-  $("#rcQuit").addEventListener("click",()=>{ S.aborted=true; clearAll(); title(); });
-  await waitClick($("#next"));
+  const next=$("#next"), rcq=$("#rcQuit");
+  next.disabled=true; rcq.disabled=true;
+  later(()=>{ next.disabled=false; rcq.disabled=false; },900);
+  rcq.addEventListener("click",()=>{ S.aborted=true; clearAll(); title(); });
+  await waitClick(next);
 }
 function rankOf(avg){
   if(avg>=90) return ["SS","ジョン・コルトレーン","非人間領域。もはやこの検定の対象外。"];
@@ -997,8 +1001,10 @@ async function practice(st){
       <button class="btn primary" id="again">もう一度</button>
       <button class="btn ghost" id="back">科目選択へ</button>
     </div></div>`);
-  $("#again").onclick=()=>practice(st);
-  $("#back").onclick=()=>practiceMenu();
+  const again=$("#again"), back=$("#back");
+  again.disabled=true; back.disabled=true;
+  later(()=>{ again.disabled=false; back.disabled=false; },900);
+  again.onclick=()=>practice(st); back.onclick=()=>practiceMenu();
 }
 function practiceMenu(){
   const s=newSession(); void s;
