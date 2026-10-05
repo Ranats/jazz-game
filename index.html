@@ -4,6 +4,15 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#0b0b10">
+<meta name="description" content="5科目のミニゲームで「ジャズ度」を採点する非公式認定試験。カウントオフのズレをms採点、2&4ハイハット、耳コーデ、セッション常識クイズ、Giant Steps。">
+<meta property="og:title" content="ジャズ研検定 — Coda Intelligence Lab 非公式認定試験">
+<meta property="og:description" content="5科目のミニゲームで「ジャズ度」を採点。あなたはコルトレーンになれるか。">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://ranats.github.io/jazz-game/">
+<meta property="og:image" content="https://ranats.github.io/jazz-game/ogp.png">
+<meta property="og:site_name" content="ジャズ研検定">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><circle cx='32' cy='32' r='29' fill='%230b0b10' stroke='%23e8b33c' stroke-width='4'/><text x='32' y='45' font-size='36' text-anchor='middle' fill='%23e8b33c' font-family='Georgia,serif' font-weight='bold'>J</text></svg>">
 <title>ジャズ研検定 — Coda Intelligence Lab 非公式認定試験</title>
 <style>
 :root{
@@ -85,9 +94,8 @@ p{line-height:1.8}
 }
 .gchord.hit{background:var(--gold);color:#1a1405;border-color:var(--gold)}
 .gchord.miss{background:#3a1515;border-color:var(--ng);color:var(--ng)}
-.gs-dead{position:fixed;inset:0;background:rgba(10,10,16,.94);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:60;padding:20px;text-align:center}
-.gs-dead h2{color:var(--ng);font-size:28px;margin:0 0 10px}
-.gs-dead .btn{max-width:300px}
+#muteBtn{position:fixed;top:12px;right:12px;z-index:70;width:42px;height:42px;border-radius:10px;border:1px solid var(--line);background:rgba(21,21,29,.85);color:var(--gold);font-size:18px;cursor:pointer;line-height:1;padding:0}
+#muteBtn.muted{color:var(--dim)}
 /* デモエリア */
 .demo{background:#0e0e15;border:1px dashed var(--line);border-radius:10px;padding:14px;margin:14px 0;min-height:96px}
 .demo .cap{font-size:11px;color:var(--dim);letter-spacing:.15em;margin-bottom:8px}
@@ -121,6 +129,8 @@ p{line-height:1.8}
 </head>
 <body>
 <div id="app">
+  <button id="muteBtn" title="音のON/OFF" aria-label="音のON/OFF">♪</button>
+  <noscript><p style="padding:40px;text-align:center">この試験にはJavaScriptが必要です。</p></noscript>
   <main id="screen"></main>
   <div class="footer">
     ジャズ研検定 — Coda Intelligence Lab<br>
@@ -138,6 +148,7 @@ const pick  = a => a[irand(0,a.length-1)];
 const shuffle = a => { for(let i=a.length-1;i>0;i--){const j=irand(0,i);[a[i],a[j]]=[a[j],a[i]];} return a; };
 const midiHz = m => 440*Math.pow(2,(m-69)/12);
 const fmtMs = e => (e>0?"+":"") + Math.round(e) + "ms";
+const SITE_URL = "https://ranats.github.io/jazz-game/";
 
 /* ================= セッション管理（中断処理） ================= */
 let S = null; // {aborted}
@@ -159,7 +170,6 @@ function clearAll(){
   pendingRes.forEach(h=>h.res()); pendingRes.clear();
   removers.splice(0).forEach(f=>{try{f()}catch(e){}});
   if(rafId){cancelAnimationFrame(rafId);rafId=0;}
-  document.querySelectorAll(".gs-dead").forEach(e=>e.remove());
   stopStageAudio();
 }
 async function until(cond){ const g=gen;
@@ -167,10 +177,16 @@ async function until(cond){ const g=gen;
 
 /* ================= オーディオ ================= */
 let AC=null, master=null, noiseBuf=null, stageBus=null;
+let MUTED=false;
+try{ MUTED = localStorage.getItem("jazzken_mute")==="1"; }catch(e){}
+function applyMute(){
+  if(master) master.gain.value = MUTED?0:.85;
+  const b=$("#muteBtn"); if(b) b.classList.toggle("muted",MUTED), b.textContent=MUTED?"♪×":"♪";
+}
 function ensureAudio(){
   if(!AC){
     AC = new (window.AudioContext||window.webkitAudioContext)();
-    master = AC.createGain(); master.gain.value=.85; master.connect(AC.destination);
+    master = AC.createGain(); master.gain.value=MUTED?0:.85; master.connect(AC.destination);
     noiseBuf = AC.createBuffer(1, AC.sampleRate, AC.sampleRate);
     const d = noiseBuf.getChannelData(0);
     for(let i=0;i<d.length;i++) d[i]=Math.random()*2-1;
@@ -578,6 +594,18 @@ const QUIZ=[
  {q:"新歓で「好きなジャズの曲は？」と聞かれた。無難な答えは？",
   o:["So What","Giant Steps","なんでも好きです","ジャズは詳しくない"],a:0,
   ex:"<b>「So What」は合格点の回答</b>。「なんでも」は逆に怪しまれる。「Giant Steps」を選んだ新入生は警戒される。"},
+ {q:"トレードフォース（4小節交代）が始まった。最も重要なことは？",
+  o:["自分の番を数え続ける","ドラムに目を閉じて身を任せる","音量を上げて主張する","次の曲を考える"],a:0,
+  ex:"自分の番を数えるのは<b>全員共通の義務</b>。番を逃した瞬間、気まずさが全員を襲います。"},
+ {q:"セッション中、譜面アプリ（iReal Pro）がフリーズした。取るべき手段は？",
+  o:["演奏を止めて再起動","耳で追いながら続ける","隣の人の画面を覗き込む","ト長調だと信じて吹く"],a:1,
+  ex:"iRealは落ちる。<b>あなたは落ちるな</b>。耳と雰囲気で帰宅まで持たせよう。"},
+ {q:"新入生が「楽器を買いたい」と相談してきた。まず勧めるべきものは？",
+  o:["プロモデルの楽器","メトロノームとチューナー","銀メッキのマウスピース","革製ストラップ"],a:1,
+  ex:"楽器は買えば揃う。<b>時間とピッチは買っても揃わない</b>。"},
+ {q:"合奏が終わり、誰もあなたに何も言わなかった。これはどういう意味？",
+  o:["合格（無言は最高の評価）","明日から来なくていい","全員が敵になった","褒めるのを忘れているだけ"],a:0,
+  ex:"ジャズ研において<b>無言は合格通知</b>。何か言われる方がよっぽど深刻です。"},
 ];
 async function stage4(S){
   const body = stageFrame("SHITSUMON 4 / 5","第四科目：セッション常識",
@@ -591,7 +619,7 @@ async function stage4(S){
   const qno=$("#qno"), okCt=$("#okCt"), qcard=$("#qcard"), opts=$("#opts"),
         exp=$("#exp"), nextBtn=$("#nextBtn");
   let nOk=0;
-  const order=shuffle([...QUIZ]).slice(0,8); // 12問中からランダム8問
+  const order=shuffle([...QUIZ]).slice(0,8); // 16問中からランダム8問
   for(let q=0;q<order.length;q++){
     if(S.aborted) return;
     const item=order[q];
@@ -833,6 +861,11 @@ function rankOf(avg){
   if(avg>=25) return ["D","Fのブルースで迷子","迷子になっても吹き続ければいつか戻れる。"];
   return ["F","カウントオフで脱落","伝説の開始。ここから全ては始まる。"];
 }
+function certNo(avg,results){
+  const s=avg+"|"+results.map(r=>r.score).join(",")+"|"+Date.now();
+  let h=0; for(const c of s) h=(h*31+c.charCodeAt(0))>>>0;
+  return "JAZZ-"+h.toString(36).toUpperCase().padStart(5,"0").slice(-5);
+}
 function loadBest(){ try{return JSON.parse(localStorage.getItem("jazzken_best")||"null")}catch(e){return null} }
 function saveBest(avg,rank){
   const b=loadBest();
@@ -843,12 +876,14 @@ function finalResult(results){
   const avg=Math.round(results.reduce((s,r)=>s+r.score,0)/results.length);
   const [rank,rname,rdesc]=rankOf(avg);
   const isNew=saveBest(avg,rank);
+  const cert=certNo(avg,results);
   const bars=results.map((r,i)=>`<div class="bar-row"><span class="nm">${STAGES[i].name}</span><div class="bar"><i style="width:${r.score}%"></i></div><span class="sc">${r.score}</span></div>`).join("");
   show(`<div class="center">
     <div class="kicker" style="margin-top:24px">総合判定</div>
     <div class="rank-badge" style="width:170px;height:170px"><div class="rank serif" style="font-size:64px">${rank}</div><div class="lbl">認定段位</div></div>
     <h2 class="serif glow" style="margin:4px 0">${rname}</h2>
     <p class="desc" style="max-width:400px;margin:0 auto">${rdesc}${isNew?"　<span style='color:var(--gold)'>NEW BEST!</span>":""}</p>
+    <div class="dim" style="font-size:11px;letter-spacing:.18em;margin-top:8px">認定番号 ${cert}</div>
     <div class="card" style="text-align:left;max-width:460px;margin:16px auto">${bars}</div>
     <div class="btnrow" style="max-width:460px;margin:0 auto">
       <button class="btn primary" id="share">結果をシェア</button>
@@ -862,8 +897,9 @@ function finalResult(results){
       <button class="btn ghost" id="back">タイトルへ</button>
     </div>
   </div>`);
-  const shareText=`【ジャズ研検定】段位 ${rank}「${rname}」（${avg}点）\n`+
+  const shareBody=`【ジャズ研検定】段位 ${rank}「${rname}」（${avg}点）\n`+
     results.map((r,i)=>`${STAGES[i].name}: ${r.score}`).join(" / ")+"\n#ジャズ研検定";
+  const shareText=shareBody+"\n"+SITE_URL;
   const shareMsg=$("#shareMsg");
   $("#share").onclick=async()=>{
     if(navigator.share){
@@ -875,10 +911,10 @@ function finalResult(results){
     }
   };
   $("#shareX").onclick=()=>{
-    window.open("https://twitter.com/intent/tweet?text="+encodeURIComponent(shareText),"_blank");
+    window.open("https://twitter.com/intent/tweet?text="+encodeURIComponent(shareBody)+"&url="+encodeURIComponent(SITE_URL),"_blank");
   };
   $("#shareImg").onclick=async()=>{
-    const c=makeShareImage(results,avg,rank,rname);
+    const c=makeShareImage(results,avg,rank,rname,cert);
     c.toBlob(async blob=>{
       const file=new File([blob],"jazzken_result.png",{type:"image/png"});
       if(navigator.canShare && navigator.canShare({files:[file]})){
@@ -894,7 +930,7 @@ function finalResult(results){
   $("#retry").onclick=()=>exam();
   $("#back").onclick=()=>title();
 }
-function makeShareImage(results,avg,rank,rname){
+function makeShareImage(results,avg,rank,rname,cert){
   const c=document.createElement("canvas"); c.width=1080; c.height=1920;
   const x=c.getContext("2d");
   const grad=x.createRadialGradient(540,300,80,540,960,1400);
@@ -908,6 +944,7 @@ function makeShareImage(results,avg,rank,rname){
   x.fillStyle="#e8b33c"; x.font="800 260px Georgia,serif"; x.fillText(rank,540,800);
   x.fillStyle="#efe9dc"; x.font="700 62px sans-serif"; x.fillText(rname,540,1030);
   x.fillStyle="#8f8a7d"; x.font="36px sans-serif"; x.fillText(`総合 ${avg}点 / 100`,540,1090);
+  x.fillStyle="#8f8a7d"; x.font="26px sans-serif"; x.fillText("認定番号 "+cert,540,1155);
   results.forEach((r,i)=>{
     const y=1240+i*110;
     x.textAlign="right"; x.fillStyle="#8f8a7d"; x.font="30px sans-serif";
@@ -919,6 +956,8 @@ function makeShareImage(results,avg,rank,rname){
   });
   x.textAlign="center"; x.fillStyle="#57534a"; x.font="28px sans-serif";
   x.fillText("Coda Intelligence Lab — #ジャズ研検定",540,1800);
+  x.fillStyle="#e8b33c"; x.font="700 34px sans-serif";
+  x.fillText("ranats.github.io/jazz-game",540,1858);
   return c;
 }
 async function exam(){
@@ -994,6 +1033,8 @@ function title(){
 // 初回タッチでオーディオ解放
 window.addEventListener("pointerdown",()=>ensureAudio(),{once:true});
 document.addEventListener("contextmenu",e=>{ if(e.target.closest(".pad")) e.preventDefault(); });
+$("#muteBtn").addEventListener("click",()=>{ MUTED=!MUTED; try{localStorage.setItem("jazzken_mute",MUTED?"1":"0")}catch(e){} applyMute(); });
+applyMute();
 title();
 </script>
 </body>

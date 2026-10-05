@@ -20,4 +20,5 @@
 
 ## External actions
 
-- Publication boundary: リポジトリはprivate。push・GitHub Pages等の公開設定の変更は明示依頼がある場合のみ行う。
+- Publication boundary: リポジトリ `Ranats/jazz-game` はpublic、GitHub Pagesで https://ranats.github.io/jazz-game/ を公開中。`main`へのmergeで自動デプロイされる。push・merge等の外部操作は明示依頼がある場合のみ行う。
+- `ogp.png` はリンクカード用の生成画像（`index.html` のOGPメタから参照）。ゲーム自体の単一ファイル性とは別物として扱う。
