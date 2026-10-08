@@ -32,9 +32,16 @@ Coda Intelligence Lab 非公式認定試験。5科目のミニゲームで「ジ
 
 ## 部員に配る方法
 
-- **GitHub Pages**：公開中 → https://ranats.github.io/jazz-game/ （`main`にpushで自動デプロイ）
+- **公開URL**：https://jazzcertify.cilabworks.com/ （GitHub Pages + 独自ドメイン。`main`にpushで自動デプロイ）
 - **LINE/Discordで配布**：`index.html` をそのまま送る→各自ブラウザで開く
 - ローカルサーバ：`python -m http.server` → `http://localhost:8000`
+
+## 収益化設定
+
+結果画面の「認定推薦図書」リンクと「コーヒーを奢る」ボタンは `index.html` 上部の定数で設定します。
+
+- `AMAZON_ASSOC_TAG`：AmazonアソシエイトのトラッキングIDを入れると推薦図書リンクがアフィリエイト化します（空=通常リンク）
+- `DONATE_URL`：Ko-fi等の支援ページURLを入れるとボタンが表示されます（空=非表示）
 
 ## 技術メモ
 
