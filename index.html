@@ -158,16 +158,17 @@ const AMAZON_ASSOC_TAG = "jazzcertify-22";
 const DONATE_URL = "https://ko-fi.com/ranats";
 const SPONSOR_URL = "https://github.com/sponsors/Ranats";
 const BOOKS=[
-  {s:"ビヤンコ C",t:"JAZZ STANDARD BIBLE（セッションビヤンコ）— 今どきのジャズ研の公用語",k:"JAZZ STANDARD BIBLE"},
-  {s:"ビヤンコ B♭",t:"JAZZ STANDARD BIBLE B♭版 — 管楽器はこっち",k:"JAZZ STANDARD BIBLE Bb"},
-  {s:"ビヤンコ E♭",t:"JAZZ STANDARD BIBLE E♭版 — アルト勢の味方",k:"JAZZ STANDARD BIBLE Eb"},
-  {s:"ビヤンコ for Ad-lib",t:"JAZZ STANDARD BIBLE for Ad-lib — ソロの取り方が書いてある",k:"JAZZ STANDARD BIBLE アドリブ"},
-  {s:"黒本",t:"ザ・リアル・ブック（黒本）— 先代の公用語",k:"ザ・リアル・ブック ジャズ"},
-  {s:"理論書",t:"ジャズ理論書 — 「なんとなく」を脱する",k:"ジャズ アドリブ 理論 本"},
+  {s:"黒本 C",t:"JAZZ STANDARD BIBLE（黒本）C — ジャズ研の公用語",k:"JAZZ STANDARD BIBLE"},
+  {s:"黒本 B♭",t:"JAZZ STANDARD BIBLE（黒本）B♭版 — 管楽器はこっち",k:"JAZZ STANDARD BIBLE Bb"},
+  {s:"黒本 E♭",t:"JAZZ STANDARD BIBLE（黒本）E♭版 — アルト勢の味方",k:"JAZZ STANDARD BIBLE Eb"},
+  {s:"黒本 for Ad-lib",t:"JAZZ STANDARD BIBLE for Ad-lib — ソロの取り方が書いてある",k:"JAZZ STANDARD BIBLE アドリブ"},
+  {s:"セオリー",t:"ジャズ・スタンダード・セオリー — 名曲から学ぶジャズ理論の全て",u:"/dp/4845623994/"},
+  {s:"リアルブック",t:"ザ・リアル・ブック — 先代の黒本",k:"ザ・リアル・ブック ジャズ"},
   {s:"メトロ＆チューナー",t:"メトロノーム＆チューナー — 新入生はまずこれ",k:"メトロノーム チューナー"},
   {s:"イヤホン",t:"イヤホン — 部室の隣室対策にも",k:"イヤホン 音楽 練習"},
 ];
 function amzUrl(k){ return "https://www.amazon.co.jp/s?k="+encodeURIComponent(k)+(AMAZON_ASSOC_TAG?"&tag="+AMAZON_ASSOC_TAG:""); }
+function bookUrl(b){ return b.u ? "https://www.amazon.co.jp"+b.u+(AMAZON_ASSOC_TAG?"?tag="+AMAZON_ASSOC_TAG:"") : amzUrl(b.k); }
 
 /* ================= セッション管理（中断処理） ================= */
 let S = null; // {aborted}
@@ -976,7 +977,7 @@ function finalResult(results){
   $("#retry").onclick=()=>exam();
   $("#back").onclick=()=>title();
   $("#bookList").innerHTML=BOOKS.map(b=>
-    `<a target="_blank" rel="noopener sponsored" href="${amzUrl(b.k)}"
+    `<a target="_blank" rel="noopener sponsored" href="${bookUrl(b)}"
       style="display:block;padding:9px 2px;color:var(--txt);text-decoration:none;border-bottom:1px solid var(--line);font-size:14px">${b.t}</a>`).join("");
   if(DONATE_URL||SPONSOR_URL){
     $("#donateWrap").style.display="block";
@@ -1122,7 +1123,7 @@ function renderFootMon(){
   const dons=[];
   if(DONATE_URL) dons.push(`<a href="${DONATE_URL}" target="_blank" rel="noopener sponsored">☕ コーヒーを奢る</a>`);
   if(SPONSOR_URL) dons.push(`<a href="${SPONSOR_URL}" target="_blank" rel="noopener sponsored">GitHub Sponsors</a>`);
-  const books=BOOKS.map(b=>`<a href="${amzUrl(b.k)}" target="_blank" rel="noopener sponsored">${b.s}</a>`).join("・");
+  const books=BOOKS.map(b=>`<a href="${bookUrl(b)}" target="_blank" rel="noopener sponsored">${b.s}</a>`).join("・");
   $("#footMon").innerHTML=(dons.length?`運営支援：${dons.join("・")}<br>`:"")+
     `認定推薦図書：${books}<br><span style="font-size:10px">当サイトはAmazonアソシエイト・プログラムの参加者です。</span>`;
 }
