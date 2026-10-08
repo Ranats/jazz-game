@@ -152,8 +152,9 @@ const shuffle = a => { for(let i=a.length-1;i>0;i--){const j=irand(0,i);[a[i],a[
 const midiHz = m => 440*Math.pow(2,(m-69)/12);
 const fmtMs = e => (e>0?"+":"") + Math.round(e) + "ms";
 const SITE_URL = "https://jazzcertify.cilabworks.com/";
-const AMAZON_ASSOC_TAG = "";
-const DONATE_URL = "";
+const AMAZON_ASSOC_TAG = "jazzcertify-22";
+const DONATE_URL = "https://ko-fi.com/ranats";
+const SPONSOR_URL = "https://github.com/sponsors/Ranats";
 const BOOKS=[
   ["ザ・リアル・ブック（黒本）— セッションの公用語","ザ・リアル・ブック ジャズ"],
   ["ジャズ理論書 — 「なんとなく」を脱する","ジャズ アドリブ 理論 本"],
@@ -919,8 +920,12 @@ function finalResult(results){
       <div class="mini" style="margin-top:10px">当サイトはAmazonアソシエイト・プログラムの参加者です。</div>
     </div>
     <div class="center" id="donateWrap" style="display:none">
-      <a class="btn ghost" id="donateBtn" target="_blank" rel="noopener sponsored"
-        style="display:block;max-width:320px;margin:10px auto;text-decoration:none">☕ コーヒーを奢って運営を支援</a>
+      <div class="btnrow" style="max-width:400px;margin:0 auto">
+        <a class="btn ghost" id="donateBtn" target="_blank" rel="noopener sponsored"
+          style="display:block;text-decoration:none">☕ コーヒーを奢る</a>
+        <a class="btn ghost" id="sponsorBtn" target="_blank" rel="noopener sponsored"
+          style="display:block;text-decoration:none">GitHub Sponsors</a>
+      </div>
     </div>
   </div>`);
   const shareBody=`【ジャズ研検定】段位 ${rank}「${rname}」（${avg}点）\n`+
@@ -966,7 +971,11 @@ function finalResult(results){
   $("#bookList").innerHTML=BOOKS.map(([t,k])=>
     `<a target="_blank" rel="noopener sponsored" href="https://www.amazon.co.jp/s?k=${encodeURIComponent(k)}${AMAZON_ASSOC_TAG?"&tag="+AMAZON_ASSOC_TAG:""}"
       style="display:block;padding:9px 2px;color:var(--txt);text-decoration:none;border-bottom:1px solid var(--line);font-size:14px">${t}</a>`).join("");
-  if(DONATE_URL){ $("#donateWrap").style.display="block"; $("#donateBtn").href=DONATE_URL; }
+  if(DONATE_URL||SPONSOR_URL){
+    $("#donateWrap").style.display="block";
+    if(DONATE_URL){ $("#donateBtn").href=DONATE_URL; }else{ $("#donateBtn").style.display="none"; }
+    if(SPONSOR_URL){ $("#sponsorBtn").href=SPONSOR_URL; }else{ $("#sponsorBtn").style.display="none"; }
+  }
 }
 function makeShareImage(results,avg,rank,rname,cert){
   const c=document.createElement("canvas"); c.width=1080; c.height=1920;
