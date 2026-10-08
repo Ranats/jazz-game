@@ -49,7 +49,9 @@ p{line-height:1.8}
 .btn.ghost{background:transparent;color:var(--dim)}
 .btn:disabled{opacity:.4;pointer-events:none}
 .btnrow{display:flex;gap:10px}
-.btnrow .btn{margin:10px 0}
+.btnrow .btn{margin:10px 0;white-space:nowrap}
+@media (max-width:520px){ .btnrow.stack-sm{flex-direction:column;gap:0} }
+.histrow.sel{border-color:var(--gold)}
 .linkbtn{background:none;border:none;color:var(--dim);font-size:12px;text-decoration:underline;cursor:pointer;padding:12px}
 .linkbtn:hover{color:var(--txt)}
 .kicker{color:var(--gold);font-size:12px;letter-spacing:.25em;margin-bottom:2px}
@@ -876,11 +878,14 @@ function saveBest(avg,rank){
   if(!b||avg>b.avg){ localStorage.setItem("jazzken_best",JSON.stringify({avg,rank,date:Date.now()})); return true }
   return false;
 }
+function loadHist(){ try{return JSON.parse(localStorage.getItem("jazzken_hist")||"[]")}catch(e){return[]} }
+function saveHist(h){ try{localStorage.setItem("jazzken_hist",JSON.stringify(h.slice(0,50)))}catch(e){} }
 function finalResult(results){
   const avg=Math.round(results.reduce((s,r)=>s+r.score,0)/results.length);
   const [rank,rname,rdesc]=rankOf(avg);
   const isNew=saveBest(avg,rank);
   const cert=certNo(avg,results);
+  const hist=loadHist(); hist.unshift({d:Date.now(),avg,rank,scores:results.map(r=>r.score)}); saveHist(hist);
   const bars=results.map((r,i)=>`<div class="bar-row"><span class="nm">${STAGES[i].name}</span><div class="bar"><i style="width:${r.score}%"></i></div><span class="sc">${r.score}</span></div>`).join("");
   show(`<div class="center">
     <div class="kicker" style="margin-top:24px">総合判定</div>
@@ -889,7 +894,7 @@ function finalResult(results){
     <p class="desc" style="max-width:400px;margin:0 auto">${rdesc}${isNew?"　<span style='color:var(--gold)'>NEW BEST!</span>":""}</p>
     <div class="dim" style="font-size:11px;letter-spacing:.18em;margin-top:8px">認定番号 ${cert}</div>
     <div class="card" style="text-align:left;max-width:460px;margin:16px auto">${bars}</div>
-    <div class="btnrow" style="max-width:460px;margin:0 auto">
+    <div class="btnrow stack-sm" style="max-width:460px;margin:0 auto">
       <button class="btn primary" id="share">結果をシェア</button>
       <button class="btn" id="shareX">Xで投稿</button>
       <button class="btn" id="shareImg">ストーリー用画像</button>
@@ -914,12 +919,20 @@ function finalResult(results){
       catch(e){ prompt("コピーしてください",shareText); }
     }
   };
+  const resultBlob=cb=>makeShareImage(results,avg,rank,rname,cert).toBlob(cb,"image/png");
   $("#shareX").onclick=()=>{
-    window.open("https://twitter.com/intent/tweet?text="+encodeURIComponent(shareBody)+"&url="+encodeURIComponent(SITE_URL),"_blank");
+    resultBlob(async blob=>{
+      const file=new File([blob],"jazzken_result.png",{type:"image/png"});
+      if(navigator.canShare && navigator.canShare({files:[file]})){
+        try{ await navigator.share({files:[file],title:"ジャズ研検定",text:shareBody+"\n"+SITE_URL}); }catch(e){}
+      }else{
+        window.open("https://twitter.com/intent/tweet?text="+encodeURIComponent(shareBody)+"&url="+encodeURIComponent(SITE_URL),"_blank");
+        shareMsg.textContent="この端末は画像の自動添付に非対応です。「ストーリー用画像」で保存して添付してください";
+      }
+    });
   };
   $("#shareImg").onclick=async()=>{
-    const c=makeShareImage(results,avg,rank,rname,cert);
-    c.toBlob(async blob=>{
+    resultBlob(async blob=>{
       const file=new File([blob],"jazzken_result.png",{type:"image/png"});
       if(navigator.canShare && navigator.canShare({files:[file]})){
         try{ await navigator.share({files:[file],text:"#ジャズ研検定"}); }catch(e){}
@@ -929,7 +942,7 @@ function finalResult(results){
           <div class="mini">画像を保存してインスタのストーリーにどうぞ</div>
           <a class="linkbtn" href="${URL.createObjectURL(blob)}" download="jazzken_result.png">画像をダウンロード</a>`;
       }
-    },"image/png");
+    });
   };
   $("#retry").onclick=()=>exam();
   $("#back").onclick=()=>title();
@@ -1018,6 +1031,56 @@ function practiceMenu(){
   [...document.querySelectorAll(".stagelist .btn")].forEach(b=>b.onclick=()=>practice(STAGES[+b.dataset.i]));
   $("#back").onclick=()=>title();
 }
+const RADAR_LABEL=["カウントオフ","2&4ハット","耳コーデ","常識","G.ステップス"];
+function drawRadar(c,scores,best){
+  const N=5,dpr=window.devicePixelRatio||1,W=340,H=330;
+  c.width=W*dpr;c.height=H*dpr;
+  const x=c.getContext("2d"); x.scale(dpr,dpr);
+  const cx=W/2,cy=H/2+6,R=108;
+  const ang=i=>-Math.PI/2+i*2*Math.PI/N;
+  const pt=(i,v)=>[cx+Math.cos(ang(i))*R*v/100,cy+Math.sin(ang(i))*R*v/100];
+  for(let r=1;r<=4;r++){ x.beginPath();
+    for(let i=0;i<=N;i++){const[px,py]=pt(i%N,r*25); i?x.lineTo(px,py):x.moveTo(px,py);}
+    x.strokeStyle=r===4?"#2b2b38":"rgba(43,43,56,.55)"; x.lineWidth=1; x.stroke(); }
+  for(let i=0;i<N;i++){ x.beginPath(); x.moveTo(cx,cy); const[px,py]=pt(i,100); x.lineTo(px,py); x.strokeStyle="rgba(43,43,56,.55)"; x.stroke(); }
+  x.font="11px sans-serif"; x.fillStyle="#8f8a7d"; x.textAlign="center"; x.textBaseline="middle";
+  for(let i=0;i<N;i++){ const[px,py]=pt(i,126); x.fillText(RADAR_LABEL[i],px,py); }
+  const poly=(vals,stroke,fill)=>{ x.beginPath();
+    vals.forEach((v,i)=>{const[px,py]=pt(i,v); i?x.lineTo(px,py):x.moveTo(px,py);});
+    x.closePath(); x.fillStyle=fill; x.fill(); x.strokeStyle=stroke; x.lineWidth=2; x.stroke(); };
+  poly(best,"#7ec8e3","rgba(126,200,227,.10)");
+  poly(scores,"#e8b33c","rgba(232,179,60,.18)");
+  scores.forEach((v,i)=>{ const[px,py]=pt(i,v); x.beginPath(); x.arc(px,py,3,0,7); x.fillStyle="#e8b33c"; x.fill(); });
+}
+function historyScreen(){
+  newSession();
+  const hist=loadHist();
+  const best=[0,0,0,0,0]; hist.forEach(h=>h.scores.forEach((s,i)=>{ if(s>best[i])best[i]=s; }));
+  const rows=hist.slice(0,12).map((h,i)=>{
+    const d=new Date(h.d);
+    const ds=`${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
+    return `<button class="btn histrow${i===0?" sel":""}" data-i="${i}"><span>${ds}</span><span><b style="color:var(--gold)">${h.rank}</b>　${h.avg}点</span></button>`;
+  }).join("");
+  show(`<div>
+    <div class="kicker" style="margin-top:10px">RECORD</div>
+    <h2 class="serif glow">受験履歴</h2>
+    ${hist.length?`
+      <div class="card" style="padding:14px 8px"><canvas id="radar" style="display:block;margin:0 auto;max-width:340px;width:100%"></canvas>
+        <div class="mini" style="margin-top:8px"><span style="color:var(--gold)">■</span> 選択した回　<span style="color:var(--acc)">■</span> 科目別ベスト</div></div>
+      <div class="stagelist" style="margin-top:14px">${rows}</div>`
+      :`<p class="desc center" style="margin:30px 0">まだ受験記録がありません。<br>検定を受けると結果とレーダーチャートがここに記録されます。</p>`}
+    <button class="btn ghost" id="back" style="margin-top:18px">タイトルへ</button>
+  </div>`);
+  $("#back").onclick=()=>title();
+  if(!hist.length) return;
+  const cv=$("#radar");
+  const draw=i=>drawRadar(cv,hist[i].scores,best);
+  draw(0);
+  document.querySelectorAll(".histrow").forEach(b=>b.onclick=()=>{
+    document.querySelectorAll(".histrow").forEach(x=>x.classList.remove("sel"));
+    b.classList.add("sel"); draw(+b.dataset.i);
+  });
+}
 function title(){
   newSession();
   const best=loadBest();
@@ -1031,10 +1094,12 @@ function title(){
     <div style="max-width:320px;margin:26px auto 0">
       <button class="btn primary" id="start">検定を受ける</button>
       <button class="btn" id="practice">科目別練習</button>
+      <button class="btn" id="histBtn">受験履歴</button>
     </div>
   </div>`);
   $("#start").onclick=()=>{ ensureAudio(); exam(); };
   $("#practice").onclick=()=>{ ensureAudio(); practiceMenu(); };
+  $("#histBtn").onclick=()=>historyScreen();
 }
 // 初回タッチでオーディオ解放
 window.addEventListener("pointerdown",()=>ensureAudio(),{once:true});
