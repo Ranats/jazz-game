@@ -140,6 +140,9 @@ p{line-height:1.8}
     <div id="footMon" style="margin-bottom:8px;line-height:2.1"></div>
     ジャズ研検定 — Coda Intelligence Lab<br>
     ※ 娯楽用プログラムです。単位・段位・楽器の上達は保証されません。
+    <div id="analyticsNotice" hidden style="margin-top:8px">アクセス数・流入元の匿名集計に
+      <a href="https://www.cloudflare.com/web-analytics/" target="_blank" rel="noopener">Cloudflare Web Analytics</a>を利用します。<br>
+      回答・成績・受験履歴は送信しません。</div>
   </div>
 </div>
 <script>
@@ -1154,6 +1157,29 @@ $("#muteBtn").addEventListener("click",()=>{ MUTED=!MUTED; try{localStorage.setI
 applyMute();
 renderFootMon();
 title();
+</script>
+<script id="webAnalytics">
+/* 本番公開時のみ任意のアクセス解析を読み込む。ゲームは解析なしでも動作する。 */
+(() => {
+  // Cloudflare Web Analytics → jazzcertify.cilabworks.com → Manage site の公開用 token。
+  // API token / Global API Key は入れない。空文字の間は解析通信を行わない。
+  const CF_WEB_ANALYTICS_TOKEN = "";
+  if (!/^[a-f0-9]{32}$/i.test(CF_WEB_ANALYTICS_TOKEN) ||
+      location.protocol !== "https:" || location.hostname !== "jazzcertify.cilabworks.com" ||
+      navigator.doNotTrack === "1" || window.doNotTrack === "1" || navigator.globalPrivacyControl === true ||
+      document.querySelector("script[data-cf-beacon]")) return;
+  try {
+    const beacon = document.createElement("script");
+    beacon.type = "module";
+    beacon.async = true;
+    beacon.src = "https://static.cloudflareinsights.com/beacon.min.js";
+    beacon.referrerPolicy = "origin";
+    // ページ閲覧のみ。受験中の画面遷移・回答・成績・履歴をイベントとして送信しない。
+    beacon.setAttribute("data-cf-beacon", JSON.stringify({token: CF_WEB_ANALYTICS_TOKEN, spa: false}));
+    document.body.appendChild(beacon);
+    document.getElementById("analyticsNotice").hidden = false;
+  } catch (e) { /* 解析の初期化に失敗してもゲームを続ける。 */ }
+})();
 </script>
 </body>
 </html>
